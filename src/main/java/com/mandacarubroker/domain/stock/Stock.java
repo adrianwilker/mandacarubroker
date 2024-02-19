@@ -1,6 +1,10 @@
 package com.mandacarubroker.domain.stock;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -24,31 +28,12 @@ public class Stock {
     public Stock(RequestStockDTO requestStockDTO){
         this.symbol = requestStockDTO.symbol();
         this.companyName = requestStockDTO.companyName();
-        this.price = changePrice(requestStockDTO.price(), true);
+        this.price = changePrice(requestStockDTO.price());
     }
 
-    public double changePrice(double amount, boolean increase) {
-        if (increase) {
-            if (amount < this.price) {
-                return increasePrice(amount);
-            } else {
-                return decreasePrice(amount);
-            }
-        } else {
-            if (amount > this.price) {
-                return increasePrice(amount);
-            } else {
-                return this.decreasePrice(amount);
-            }
-        }
-    }
-
-    public double increasePrice(double amount) {
-        return this.price + amount;
-    }
-
-    public double decreasePrice(double amount) {
-        return this.price - amount;
+    public double changePrice(double amount) {
+        this.price = amount;
+        return this.price;
     }
 
 }

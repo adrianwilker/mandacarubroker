@@ -3,8 +3,13 @@ package com.mandacarubroker.service;
 import com.mandacarubroker.domain.stock.RequestStockDTO;
 import com.mandacarubroker.domain.stock.Stock;
 import com.mandacarubroker.domain.stock.StockRepository;
-import jakarta.validation.*;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -29,25 +34,37 @@ public class StockService {
     }
 
     public Stock createStock(RequestStockDTO data) {
-        Stock novaAcao = new Stock(data);
+        Stock newStock = new Stock(data);
         validateRequestStockDTO(data);
-        return stockRepository.save(novaAcao);
+        return stockRepository.save(newStock);
     }
 
-    public Optional<Stock> updateStock(String id, Stock updatedStock) {
-        return stockRepository.findById(id)
-                .map(stock -> {
-                    stock.setSymbol(updatedStock.getSymbol());
-                    stock.setCompanyName(updatedStock.getCompanyName());
-                    double newPrice = stock.changePrice(updatedStock.getPrice(), true);
-                    stock.setPrice(newPrice);
+    public Optional<Stock> updateStock(String id, RequestStockDTO data) {
+        Optional<Stock> optionalStock = stockRepository.findById(id);
 
-                    return stockRepository.save(stock);
-                });
+        if(optionalStock.isPresent()) {
+            Stock stock = optionalStock.get();
+            validateRequestStockDTO(data);
+            Stock updatedStock = new Stock(data);
+            stock.setSymbol(updatedStock.getSymbol());
+            stock.setCompanyName(updatedStock.getCompanyName());
+            double newPrice = stock.changePrice(updatedStock.getPrice());
+            stock.setPrice(newPrice);
+
+            return Optional.of(stockRepository.save(stock));
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Stock not found with id: " + id);
+        }
     }
 
     public void deleteStock(String id) {
-        stockRepository.deleteById(id);
+        Optional<Stock> optionalStock = stockRepository.findById(id);
+
+        if(optionalStock.isPresent()) {
+            stockRepository.deleteById(id);
+        } else {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Stock not found with id: " + id);
+        }
     }
 
     public static void validateRequestStockDTO(RequestStockDTO data) {
@@ -64,14 +81,8 @@ public class StockService {
 
             errorMessage.delete(errorMessage.length() - 2, errorMessage.length());
 
-            throw new ConstraintViolationException(errorMessage.toString(), violations);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, errorMessage.toString());
         }
-    }
 
-    public void validateAndCreateStock(RequestStockDTO data) {
-        validateRequestStockDTO(data);
-
-        Stock novaAcao = new Stock(data);
-        stockRepository.save(novaAcao);
     }
 }
